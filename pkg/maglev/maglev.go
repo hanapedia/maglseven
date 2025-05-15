@@ -74,6 +74,31 @@ func (t *Table) Lookup(key string) Backend {
 	return t.backends[backendIndex]
 }
 
+// LookupN returns up to `n` unique backends for the given key,
+// scanning forward from the hash index in the lookup table.
+func (t *Table) LookupN(key string, n int) []Backend {
+    if n <= 0 {
+        return nil
+    }
+
+    seen := make(map[int]struct{})
+    result := make([]Backend, 0, n)
+    start := int(hash32(key) % uint32(t.m))
+
+    // Linear scan through slots starting at hashed offset
+    for i := 0; len(result) < n && i < t.m; i++ {
+        slot := (start + i) % t.m
+        backendIndex := t.slots[slot]
+
+        if _, ok := seen[backendIndex]; !ok {
+            seen[backendIndex] = struct{}{}
+            result = append(result, t.backends[backendIndex])
+        }
+    }
+
+    return result
+}
+
 // Simple FNV-1a hash
 // Can be swapped with other stronger hashes such as xxHash or MurmurHash3
 func hash32(s string) uint32 {

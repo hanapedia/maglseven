@@ -24,3 +24,7 @@ func (d *Dispatcher) Route(r *http.Request) string {
 	key := d.keyFn(r)
 	return d.table.Lookup(key).ID
 }
+
+func (d *Dispatcher) UpdateTable(t *maglev.Table) {
+	d.table = t
+}

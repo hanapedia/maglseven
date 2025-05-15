@@ -10,16 +10,17 @@ import (
 )
 
 type Proxy struct {
+	destPort string
 	dispatcher *dispatcher.Dispatcher
 }
 
-func NewProxy(d *dispatcher.Dispatcher) *Proxy {
-	return &Proxy{dispatcher: d}
+func NewProxy(dp string, d *dispatcher.Dispatcher) *Proxy {
+	return &Proxy{destPort: dp, dispatcher: d}
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	backendHost := p.dispatcher.Route(r)
-	target, err := url.Parse("http://" + strings.TrimSpace(backendHost))
+	target, err := url.Parse("http://" + strings.TrimSpace(backendHost) + ":" + p.destPort)
 	if err != nil {
 		http.Error(w, "Invalid backend URL", http.StatusBadGateway)
 		return

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maglev-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maglev
+  template:
+    metadata:
+      labels:
+        app: maglev
+    spec:
+      containers:
+        - name: proxy
+          image: hexagonbenchmark/magseven
+          env:
+            - name: BACKEND_FQDN
+              value: hello-headless.default.svc.cluster.local
+            - name: ROUTE_HEADER
+              value: X-Room-ID
+            - name: RESOLVE_INTERVAL
+              value: 10s
+            - name: DEST_PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
