@@ -3,7 +3,7 @@ package watcher
 import (
 	"context"
 
-	"github.com/hanapedia/magseven/pkg/maglev"
+	"github.com/hanapedia/maglseven/pkg/maglev"
 )
 
 type StaticWatcher struct {

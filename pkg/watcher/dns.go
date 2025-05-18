@@ -2,13 +2,11 @@ package watcher
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"net"
-	"sort"
 	"time"
 
-	"github.com/hanapedia/magseven/pkg/maglev"
+	"github.com/hanapedia/maglseven/pkg/maglev"
+	"github.com/hanapedia/maglseven/pkg/util"
 )
 
 type DNSWatcher struct {
@@ -35,7 +33,7 @@ func (w *DNSWatcher) Watch(ctx context.Context, updates chan<- []maglev.Backend)
 			})
 		}
 
-		newHash := hashBackends(backends)
+		newHash := util.HashBackends(backends)
 		if newHash == lastHash {
 			return nil // no change → skip update
 		}
@@ -62,20 +60,4 @@ func (w *DNSWatcher) Watch(ctx context.Context, updates chan<- []maglev.Backend)
 			return ctx.Err()
 		}
 	}
-}
-
-func hashBackends(backends []maglev.Backend) string {
-	ids := make([]string, 0, len(backends))
-	for _, b := range backends {
-		ids = append(ids, b.ID)
-	}
-	sort.Strings(ids) // ensure order-insensitive hash
-
-	joined := ""
-	for _, id := range ids {
-		joined += id + "\n"
-	}
-
-	sum := sha256.Sum256([]byte(joined))
-	return hex.EncodeToString(sum[:])
 }

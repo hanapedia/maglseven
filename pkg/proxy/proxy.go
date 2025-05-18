@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hanapedia/magseven/pkg/dispatcher"
+	"github.com/hanapedia/maglseven/pkg/dispatcher"
 )
 
 type Proxy struct {
