@@ -7,7 +7,8 @@ import (
 )
 
 type Backend struct {
-	ID string // Unique identifier (e.g., Pod IP or name)
+	ID            string // Unique identifier (e.g., Pod IP or name)
+	FailureDomain string // Unique identifier for failure domain of the backend
 }
 
 type Table struct {
@@ -103,6 +104,45 @@ func (t *Table) LookupN(key string, n int) []Backend {
 			seen[backendIndex] = struct{}{}
 			result = append(result, t.backends[backendIndex])
 		}
+	}
+
+	return result
+}
+
+// LookupNWithDomainIsolation returns up to `count` distinct backends
+// from different failure domains, bounded by `maxJumps` scan attempts.
+func (t *Table) LookupNWithDomainIsolation(key string, count, maxJumps int) []Backend {
+	if count <= 0 || maxJumps <= 0 || t.m == 0 {
+		return nil
+	}
+
+	result := make([]Backend, 0, count)
+	seenBackends := make(map[int]struct{})   // backend index
+	seenDomains := make(map[string]struct{}) // domain ID
+	start := int(hash32(key) % uint32(t.m))
+
+	attempts := 0
+	for i := 0; len(result) < count && attempts < maxJumps; i++ {
+		slot := (start + i) % t.m
+		backendIdx := t.slots[slot]
+		attempts++
+
+		// Skip if already selected
+		if _, seen := seenBackends[backendIdx]; seen {
+			continue
+		}
+
+		backend := t.backends[backendIdx]
+		domain := backend.FailureDomain
+
+		if _, domainSeen := seenDomains[domain]; domainSeen {
+			continue // same domain already chosen
+		}
+
+		// Select backend
+		result = append(result, backend)
+		seenBackends[backendIdx] = struct{}{}
+		seenDomains[domain] = struct{}{}
 	}
 
 	return result

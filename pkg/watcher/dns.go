@@ -10,8 +10,9 @@ import (
 )
 
 type DNSWatcher struct {
-	FQDN     string        // e.g., "myapp.default.svc.cluster.local"
-	Interval time.Duration // how often to resolve
+	FQDN        string // e.g., "myapp.default.svc.cluster.local"
+	Interval    time.Duration
+	FailureCIDR *net.IPMask // e.g., /24 to extract failure domain
 }
 
 func (w *DNSWatcher) Watch(ctx context.Context, updates chan<- []maglev.Backend) error {
@@ -28,14 +29,23 @@ func (w *DNSWatcher) Watch(ctx context.Context, updates chan<- []maglev.Backend)
 
 		backends := make([]maglev.Backend, 0, len(ips))
 		for _, ip := range ips {
+			if ip.To4() == nil {
+				continue // skip IPv6
+			}
+			failureDomain := ip.String()
+			if w.FailureCIDR != nil {
+				maskedIP := ip.Mask(*w.FailureCIDR)
+				failureDomain = maskedIP.String()
+			}
 			backends = append(backends, maglev.Backend{
-				ID: ip.String(),
+				ID:            ip.String(),
+				FailureDomain: failureDomain,
 			})
 		}
 
 		newHash := util.HashBackends(backends)
 		if newHash == lastHash {
-			return nil // no change → skip update
+			return nil // no change
 		}
 		lastHash = newHash
 
@@ -47,7 +57,6 @@ func (w *DNSWatcher) Watch(ctx context.Context, updates chan<- []maglev.Backend)
 		return nil
 	}
 
-	// Initial resolve
 	if err := resolveAndSend(); err != nil {
 		return err
 	}
