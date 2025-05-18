@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/hanapedia/magseven/pkg/dispatcher"
-	"github.com/hanapedia/magseven/pkg/maglev"
-	"github.com/hanapedia/magseven/pkg/proxy"
-	"github.com/hanapedia/magseven/pkg/watcher"
+	"github.com/hanapedia/maglseven/pkg/dispatcher"
+	"github.com/hanapedia/maglseven/pkg/maglev"
+	"github.com/hanapedia/maglseven/pkg/proxy"
+	"github.com/hanapedia/maglseven/pkg/watcher"
 )
 
 func getenv(key, def string) string {
@@ -35,9 +35,9 @@ func main() {
 	log.Printf("Starting Maglev Proxy: resolving %s every %s on :%s using header %s",
 		fqdn, interval, listenPort, headerName)
 
-	watcher := &watcher.DNSWatcher{
-		FQDN:     fqdn,
-		Interval: interval,
+	watcher := &watcher.EndpointSlicesWatcher{
+		Namespace: "default",
+		Service:   "hello-headless",
 	}
 
 	updates := make(chan []maglev.Backend, 1)
@@ -45,7 +45,7 @@ func main() {
 
 	go func() {
 		if err := watcher.Watch(ctx, updates); err != nil {
-			log.Fatalf("Watcher failed: %v", err)
+			log.Fatalf("watcher failed: %v", err)
 		}
 	}()
 

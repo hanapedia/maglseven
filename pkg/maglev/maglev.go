@@ -3,6 +3,7 @@ package maglev
 import (
 	"errors"
 	"hash/fnv"
+	"strings"
 )
 
 type Backend struct {
@@ -10,9 +11,17 @@ type Backend struct {
 }
 
 type Table struct {
-	slots    []int       // slot index -> backend index
+	slots    []int // slot index -> backend index
 	backends []Backend
-	m        int         // table size
+	m        int // table size
+}
+
+func (t Table) String() string {
+	var ids []string
+	for _, backend := range t.backends {
+		ids = append(ids, backend.ID)
+	}
+	return strings.Join(ids, ",")
 }
 
 // Prime number recommended, e.g., 65537
@@ -37,9 +46,9 @@ func Build(backends []Backend, tableSize int) (*Table, error) {
 		h := hash32(b.ID)
 		offsets[i] = int(h % uint32(tableSize))
 
-		// skips must be coprime to tableSize 
+		// skips must be coprime to tableSize
 		// ([0, tableSize-1]) is coprime since tableSize is prime
-		skips[i] = int((hash32(b.ID + "#") % uint32(tableSize-1)) + 1)
+		skips[i] = int((hash32(b.ID+"#") % uint32(tableSize-1)) + 1)
 	}
 
 	// Fill the table using Maglev permutation
@@ -77,26 +86,26 @@ func (t *Table) Lookup(key string) Backend {
 // LookupN returns up to `n` unique backends for the given key,
 // scanning forward from the hash index in the lookup table.
 func (t *Table) LookupN(key string, n int) []Backend {
-    if n <= 0 {
-        return nil
-    }
+	if n <= 0 {
+		return nil
+	}
 
-    seen := make(map[int]struct{})
-    result := make([]Backend, 0, n)
-    start := int(hash32(key) % uint32(t.m))
+	seen := make(map[int]struct{})
+	result := make([]Backend, 0, n)
+	start := int(hash32(key) % uint32(t.m))
 
-    // Linear scan through slots starting at hashed offset
-    for i := 0; len(result) < n && i < t.m; i++ {
-        slot := (start + i) % t.m
-        backendIndex := t.slots[slot]
+	// Linear scan through slots starting at hashed offset
+	for i := 0; len(result) < n && i < t.m; i++ {
+		slot := (start + i) % t.m
+		backendIndex := t.slots[slot]
 
-        if _, ok := seen[backendIndex]; !ok {
-            seen[backendIndex] = struct{}{}
-            result = append(result, t.backends[backendIndex])
-        }
-    }
+		if _, ok := seen[backendIndex]; !ok {
+			seen[backendIndex] = struct{}{}
+			result = append(result, t.backends[backendIndex])
+		}
+	}
 
-    return result
+	return result
 }
 
 // Simple FNV-1a hash

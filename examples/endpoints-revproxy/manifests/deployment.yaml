@@ -1,20 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: maglev-proxy
+  name: maglseven-proxy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: maglev
+      app: maglseven
   template:
     metadata:
       labels:
-        app: maglev
+        app: maglseven
     spec:
+      serviceAccountName: maglseven-proxy
       containers:
         - name: proxy
-          image: hexagonbenchmark/magseven
+          imagePullPolicy: Always
+          image: hexagonbenchmark/maglseven:endpoints-revproxy
           env:
             - name: BACKEND_FQDN
               value: hello-headless.default.svc.cluster.local
