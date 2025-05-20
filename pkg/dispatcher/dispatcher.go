@@ -31,6 +31,13 @@ func (d *Dispatcher) Route(r *http.Request) string {
 	return id
 }
 
+// RouteByKey selects a backend URL for an incoming key
+func (d *Dispatcher) RouteByKey(key string) string {
+	id := d.table.Lookup(key).ID
+	d.logger.Debug("Routing request", "key", key, "ID", id) // Debug log for "key -> ID" mapping
+	return id
+}
+
 func (d *Dispatcher) UpdateTable(t *maglev.Table) {
 	oldTable := d.table
 	d.table = t
